@@ -1,4 +1,8 @@
+
 # bytebeat-composer
+
+!! made by insanity !!
+
 Live editing algorithmic music generator with a collection of many formulas from around the internet.
 
 Bytebeat Composer: https://dollchan.net/bytebeat/<br>
