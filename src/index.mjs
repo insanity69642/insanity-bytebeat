@@ -27,17 +27,21 @@ globalThis.bytebeat = new class {
 			drawScale: scope.drawScale,
 			isSeconds: false,
 			showAllSongs: library.showAllSongs,
+			srDivisor: 1,
 			themeStyle: 'Default',
 			volume: .5
 		};
 		this.isCompilationError = false;
 		this.isNeedClear = false;
+		this.isLagging = false;
 		this.isPlaying = false;
 		this.isRecording = false;
 		this.mode = 'Bytebeat';
 		this.playbackSpeed = 1;
 		this.sampleRate = 8000;
 		this.settings = this.defaultSettings;
+		this.lastUpdateTime = 0;
+		this.updateCounter = 0;
 		this.init();
 	}
 	handleEvent(e) {
@@ -90,6 +94,8 @@ globalThis.bytebeat = new class {
 			case 'control-scale': this.setScale(-scope.drawScale); break;
 			case 'control-scaledown': this.setScale(-1, elem); break;
 			case 'control-scaleup': this.setScale(1); break;
+			case 'control-srdivisor-down': this.setSRDivisor(-1); break;
+			case 'control-srdivisor-up': this.setSRDivisor(1); break;
 			case 'control-stop': this.playbackStop(); break;
 			case 'control-counter-units': this.toggleCounterUnits(); break;
 			default:
@@ -104,6 +110,9 @@ globalThis.bytebeat = new class {
 					library.onclickLibraryHeader(elem);
 				} else if(elem.parentNode.classList.contains('library-header')) {
 					library.onclickLibraryHeader(elem.parentNode);
+				} else if(elem.classList.contains('song-hash')) {
+					navigator.clipboard.writeText(elem.dataset.hash);
+					e.preventDefault();
 				}
 			}
 			return;
@@ -125,6 +134,8 @@ globalThis.bytebeat = new class {
 				elem.title = 'Click to play this code';
 			} else if(elem.classList.contains('songs-header')) {
 				elem.title = 'Click to show/hide the songs';
+			} else if(elem.classList.contains('song-hash')) {
+				elem.title = 'Click to copy the song hash into clipboard';
 			}
 			return;
 		}
@@ -205,6 +216,7 @@ globalThis.bytebeat = new class {
 		this.mode = ui.controlPlaybackMode.value = mode = mode || 'Bytebeat';
 		editor.setValue(code);
 		this.setSampleRate(ui.controlSampleRate.value = +sampleRate || 8000, false);
+		this.setSRDivisor(0);
 		const data = {
 			mode,
 			sampleRate: this.sampleRate,
@@ -277,6 +289,11 @@ globalThis.bytebeat = new class {
 				scope.requestAnimationFrame(); // Main call for drawing in the scope
 			}
 		} else {
+			this.lastUpdateTime = 0;
+			this.updateCounter = 0;
+			this.isLagging = false;
+			ui.controlLag.innerText = '---';
+			ui.controlLag.classList.remove('control-lag-red');
 			if(this.isRecording) {
 				this.isRecording = false;
 				ui.controlRecord.classList.remove('control-recording');
@@ -419,6 +436,26 @@ globalThis.bytebeat = new class {
 		this.setCounterValue(this.byteSample);
 	}
 	setCounterValue(value) {
+		this.updateCounter++;
+		if(this.updateCounter === 400) {
+			this.updateCounter = 0;
+			const time = Date.now();
+			if(this.lastUpdateTime) {
+				const lag =
+					Math.min(Math.max(Math.round((time - this.lastUpdateTime) * 37.5 / 400) - 100, 0), 999);
+				ui.controlLag.innerText = lag + '%';
+				if(lag > 3) {
+					if(!this.isLagging) {
+						this.isLagging = true;
+						ui.controlLag.classList.add('control-lag-red');
+					}
+				} else if(this.isLagging) {
+					this.isLagging = false;
+					ui.controlLag.classList.remove('control-lag-red');
+				}
+			}
+			this.lastUpdateTime = time;
+		}
 		ui.controlTime.value = this.settings.isSeconds ? (value / this.sampleRate).toFixed(2) : value;
 	}
 	setDrawMode(drawMode) {
@@ -438,6 +475,7 @@ globalThis.bytebeat = new class {
 		) {
 			sampleRate = 8000;
 		}
+		sampleRate = Math.max(0.1, sampleRate);
 		switch(sampleRate) {
 		case 8000:
 		case 11025:
@@ -478,6 +516,15 @@ globalThis.bytebeat = new class {
 			ui.controlScaleDown.removeAttribute('disabled');
 		}
 	}
+	setSRDivisor(increment) {
+		const value = (this.settings.srDivisor || 1) + increment;
+		if(value === 0) {
+			return;
+		}
+		ui.controlSRDivisor.textContent = this.settings.srDivisor = value;
+		this.saveSettings();
+		this.sendData({ srDivisor: value });
+	}
 	setThemeStyle(value) {
 		if(value === undefined) {
 			if((value = this.settings.themeStyle) === undefined) {
@@ -493,12 +540,12 @@ globalThis.bytebeat = new class {
 		switch(value) {
 		case 'Cake':
 			colorCursor = '#40ffff';
-			colorDiagram = '#ff00ff';
+			colorDiagram = '#c000c0';
 			colorStereo = 0;
 			break;
 		case 'Green':
 			colorCursor = '#ff0000';
-			colorDiagram = '#00c080';
+			colorDiagram = '#00a080';
 			break;
 		case 'Orange':
 			colorCursor = '#ffff80';
@@ -512,7 +559,7 @@ globalThis.bytebeat = new class {
 			break;
 		case 'Teal':
 			colorCursor = '#80c0ff';
-			colorDiagram = '#00ffff';
+			colorDiagram = '#00a0c0';
 			break;
 		default:
 			colorCursor = '#80c0ff';

@@ -35,10 +35,9 @@ export class Library {
 	}
 	generateEntryHTML({
 		author, code, codeFormLen, codeLen, codeMin, codeMinLen, coverName, coverUrl, date, description,
-		drawing, fileForm, fileMin, fileOrig, hash, mode, name, rating, remix, sampleRate, songs, stereo,
-		tags, url
+		drawing, fileForm, fileMin, fileOrig, hash, mode, name, remix, sampleRate, songs, stereo, tags, url
 	}, libName) {
-		const notAllLib = libName !== 'all';
+		const notAllLib = libName !== 'all' && libName !== 'recent';
 		if(songs) {
 			let songsStr = '';
 			const len = songs.length;
@@ -123,7 +122,8 @@ export class Library {
 		}
 		str += '</span>';
 		if(this.isAdmin) {
-			str += ` <a href="bytebeat.php?editsong_request&hash=${ hash }" target="_blank">Edit</a>`;
+			str += ` <a href="bytebeat.php?editsong_request&hash=${ hash }" target="_blank">Edit</a> / ` +
+				`<a class="song-hash" href="#" data-hash="${ hash }">Hash</a>`;
 		}
 		if(description) {
 			str += `<div class="code-description">${ description }</div>`;
@@ -134,7 +134,9 @@ export class Library {
 				str += '<div class="code-remix"><div class="code-remix-preview"> remix of ' +
 					`<button class="code-button code-remix-load" data-hash="${
 						rHash }" title="Show detailed source information">&gt;</button> <span>${
-						rUrl ? `<a href="${ rUrl }" target="_blank">${ rName || rAuthor }</a>` :
+						rUrl ? `<a href="${
+							rUrl.startsWith('[') ? rUrl.match(/"([^"]+)"/)[1] : rUrl }" target="_blank">${
+							rName || rAuthor }</a>` :
 						`"${ rName }"` }${ rName && rAuthor ? ' by ' + rAuthor : '' }</span></div></div>`;
 			}
 		}
@@ -164,7 +166,7 @@ export class Library {
 			str += `<button class="code-text code-text-orig${ codeMin ? ' hidden' : '' }"${
 				sData }>${ this.escapeHTML(code) }</button>`;
 		}
-		return `<div class="entry${ rating ? ' star-' + rating : '' }">${ str }</div>`;
+		return `<div class="entry">${ str }</div>`;
 	}
 	initElements() {
 		this.cacheParentElem = document.createElement('div');

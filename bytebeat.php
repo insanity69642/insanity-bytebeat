@@ -27,7 +27,7 @@ function fancyDie($message) {
 	<title>Bytebeat management</title>
 	<link rel="canonical" href="https://dollchan.net/bytebeat/">
 	<link rel="shortcut icon" href="favicon.png">
-	<link rel="stylesheet" type="text/css" href="style.css?version=2025091601">
+	<link rel="stylesheet" type="text/css" href="style.css?version=2025110400">
 </head>
 <body style="text-align: center;">
 	<div style="display: inline-block; padding: 8px 0;">
@@ -35,6 +35,7 @@ function fancyDie($message) {
 	</div>
 	<br>
 	<hr>
+	[<a href="https://github.com/SthephanShinkufag/bytebeat-composer/wiki/Library-moderation-instructions">Instructions</a>]
 	[<a href="./">Go to player</a>]
 	[<a href="javascript: window.history.go(-1);">Return</a>]
 </body>
@@ -91,15 +92,15 @@ function addSongForm() {
 						<td><input type="text" name="name"></td>
 					</tr>
 					<tr>
-						<th>Description</th>
-						<td><textarea name="description"></textarea></td>
-					</tr>
-					<tr>
 						<th>URL</th>
 						<td class="table-form-added"><div>
 							<input type="text" name="url[]" placeholder="URL">
 							<button onclick="this.parentNode.insertAdjacentHTML(\'afterend\', this.parentNode.outerHTML); event.preventDefault();" title="Click to add more sources.">+</button>
 						</div></td>
+					</tr>
+					<tr>
+						<th>Description</th>
+						<td><textarea name="description"></textarea></td>
 					</tr>
 					<tr>
 						<th>Mode</th>
@@ -159,14 +160,6 @@ function addSongForm() {
 							<input type="text" name="tags[]" placeholder="Tag">
 							<button onclick="this.parentNode.insertAdjacentHTML(\'afterend\', this.parentNode.outerHTML); event.preventDefault();" title="Click to add more sources.">+</button>
 						</div></td>
-					</tr>
-					<tr>
-						<th>Rating</th>
-						<td><select name="rating">
-							<option value="0">No rating</option>
-							<option value="1">Star</option>
-							<option value="2">Yellow star</option>
-						</select></td>
 					</tr>
 					<tr><td><input type="submit" value="Submit"></td><td></td></tr>
 				</tbody></table>
@@ -276,14 +269,14 @@ function editSongForm() {
 							(isset($song['name']) ? htmlspecialchars($song['name']) : '') . '"></td>
 					</tr>
 					<tr>
+						<th>URL</th>
+						<td class="table-form-added">' . $urlStr . '</td>
+					</tr>
+					<tr>
 						<th>Description</th>
 						<td><textarea name="description">' .
 							(isset($song['description']) ? htmlspecialchars($song['description']) : '') .
 							'</textarea></td>
-					</tr>
-					<tr>
-						<th>URL</th>
-						<td class="table-form-added">' . $urlStr . '</td>
 					</tr>
 					<tr>
 						<th>Mode</th>
@@ -353,17 +346,6 @@ function editSongForm() {
 						<th>Tags</th>
 						<td class="table-form-added">' . $tagsStr .'</td>
 					</tr>
-					<tr>
-						<th>Rating</th>
-						<td><select name="rating">
-							<option value="0"' .
-								($song['rating'] === '0' ? ' selected' : '') . '>No rating</option>
-							<option value="1"' .
-								($song['rating'] === '1' ? ' selected' : '') . '>Star</option>
-							<option value="2"' .
-								($song['rating'] === '2' ? ' selected' : '') . '>Yellow star</option>
-						</select></td>
-					</tr>
 				</tbody></table>
 				<input type="submit" value="Submit changes" style="float: left; margin: 2px;">
 			</form>
@@ -419,9 +401,10 @@ function decodeLibraryFile($dbLink, $libName) {
 				(isset($song->coverUrl) ? ', cover_url' : '') .
 				(isset($song->drawing) ? ', drawing' : '') .
 				', tags' .
-				(isset($song->rating) ? ', rating' : '') .
-				(isset($song->user_added) ? ', user_added' : '') .
+				# (isset($song->user_added) ? ', user_added' : '') .
 				(isset($song->date_added) ? ', date_added' : '') .
+				# (isset($song->user_edited) ? ', user_edited' : '') .
+				(isset($song->date_edited) ? ', date_edited' : '') .
 			') VALUES ("' . $song->hash . '"' .
 				($author !== '' ? ', "' . addslashes($author) . '"' : '') .
 				(isset($song->name) ? ', "' . addslashes($song->name) . '"' : '') .
@@ -439,9 +422,10 @@ function decodeLibraryFile($dbLink, $libName) {
 				(isset($song->drawing) ? ', "{\"mode\": \"' . $song->drawing->mode . '\", \"scale\": ' .
 					$song->drawing->scale . '}"' : '') .
 				', "' . addslashes('["' . implode('","', $song->tags) . '"]') . '"' .
-				(isset($song->rating) ? ', ' . $song->rating : '') .
-				(isset($song->user_added) ? ', "' . addslashes($song->user_added) . '"' : '') .
+				# (isset($song->user_added) ? ', "' . addslashes($song->user_added) . '"' : '') .
 				(isset($song->date_added) ? ', "' . $song->date_added . '"' : '') .
+				# (isset($song->user_edited) ? ', "' . addslashes($song->user_edited) . '"' : '') .
+				(isset($song->date_edited) ? ', "' . $song->date_edited . '"' : '') .
 			');');
 
 			// Find remixes of songs and write to 'remixes' database table
@@ -496,9 +480,10 @@ function filesToDatabase() {
 				`cover_url` TEXT NULL,
 				`drawing` VARCHAR(50) NULL,
 				`tags` VARCHAR(255) NULL,
-				`rating` CHAR NULL,
 				`user_added` VARCHAR(255) NULL,
 				`date_added` VARCHAR(10) NULL,
+				`user_edited` VARCHAR(255) NULL,
+				`date_edited` VARCHAR(10) NULL,
 				PRIMARY KEY (id),
 				KEY `hash` (hash)
 			)
@@ -603,9 +588,10 @@ function databaseToFiles() {
 			`cover_url`,
 			`drawing`,
 			`tags`,
-			`rating`,
 			`user_added`,
-			`date_added`
+			`date_added`,
+			`user_edited`,
+			`date_edited`
 		FROM songs ORDER BY `author`, `date`, `id`;');
 
 	// Create a json string for each song and put it into an associative array by hash
@@ -678,9 +664,10 @@ function databaseToFiles() {
 			(isset($song['cover_url']) ? ',"coverUrl":"' . $song['cover_url'] . '"' : '') .
 			(isset($song['drawing']) ? ',"drawing":' . $song['drawing'] : '') .
 			(isset($song['tags']) ? ',"tags":' . $song['tags'] : '') .
-			(isset($song['rating']) ? ',"rating":' . $song['rating'] : '') .
-			(isset($song['user_added']) ? ',"user_added": "' . $song['user_added'] . '"' : '') .
+			# (isset($song['user_added']) ? ',"user_added": "' . $song['user_added'] . '"' : '') .
 			(isset($song['date_added']) ? ',"date_added": "' . $song['date_added'] . '"' : '') .
+			# (isset($song['user_edited']) ? ',"user_edited": "' . $song['user_edited'] . '"' : '') .
+			(isset($song['date_edited']) ? ',"date_edited": "' . $song['date_edited'] . '"' : '') .
 		'}';
 	}
 
@@ -696,6 +683,13 @@ function databaseToFiles() {
 	$fileName = $pathLibrary . 'all.gz';
 	makeLibraryFile($fileName, $songsByHash, mysqli_query($dbLink,
 		'SELECT `hash`, `author` FROM songs
+		ORDER BY `author`, `date`, `id`;'));
+
+	// Library file with recently added songs sorted by authors
+	$fileName = $pathLibrary . 'recent.gz';
+	makeLibraryFile($fileName, $songsByHash, mysqli_query($dbLink,
+		'SELECT `hash`, `author` FROM songs
+		WHERE `date_added` IS NOT NULL
 		ORDER BY `author`, `date`, `id`;'));
 
 	// Library file with c-compatible songs
@@ -782,14 +776,13 @@ function addSong($isEdit) {
 	$codeFormatted = str_replace("\r", '', addslashes($_POST['code_formatted']));
 	$coverName = addslashes(trim($_POST['cover_name']));
 	$coverUrl = addslashes(trim($_POST['cover_url']));
-	$rating = $_POST['rating'];
-	$userAdded = addslashes(array_search($_SESSION['bytebeat'], $bytebeat_admins, true));
-	$dateAdded = date('Y-m-d');
+	$user = addslashes(array_search($_SESSION['bytebeat'], $bytebeat_admins, true));
+	$dateEdited = date('Y-m-d');
 
 	// Drawing
 	$drawingMode = $_POST['drawing_mode'];
 	$drawingScale = trim($_POST['drawing_scale']);
-	$drawingScale = $drawingScale && is_numeric($drawingScale) ? $drawingScale : NULL;
+	$drawingScale = isset($drawingScale) && is_numeric($drawingScale) ? $drawingScale : NULL;
 	$drawing = $drawingMode || isset($drawingScale) ? addslashes('{' .
 		($drawingMode ? '"mode":"' . $drawingMode . '"' : '') .
 		(isset($drawingScale) ? ($drawingMode ? ',' : '') . '"scale":"' . $drawingScale . '"' : '') .
@@ -836,9 +829,8 @@ function addSong($isEdit) {
 			', `cover_url` = ' . ($coverUrl ? '"' . $coverUrl . '"' : 'NULL') .
 			', `drawing` = ' . ($drawing ? '"' . $drawing . '"' : 'NULL') .
 			', `tags` = "' . $tagsStr . '"' .
-			', `rating` = ' . ($rating ? $rating : 'NULL') .
-			', `user_added` = "' . $userAdded . '"' .
-			', `date_added` = "' . $dateAdded . '"
+			', `user_edited` = "' . $user . '"' .
+			', `date_edited` = "' . $dateEdited . '"
 		WHERE `hash` = "' . $hash . '";');
 	} else {
 		// Adding a new song
@@ -858,7 +850,6 @@ function addSong($isEdit) {
 			($coverUrl  ? ', `cover_url`' : '') .
 			($drawing ? ', `drawing`' : '') .
 			', `tags`' .
-			($rating ? ', `rating`' : '') .
 			', `user_added`' .
 			', `date_added`
 		) VALUES ("' .
@@ -878,9 +869,8 @@ function addSong($isEdit) {
 			($coverUrl ? ', "' . $coverUrl . '"' : '') .
 			($drawing ? ', "' . $drawing . '"' : '') .
 			', "' . $tagsStr . '"' .
-			($rating ? ', ' . $rating : '') .
-			', "' . $userAdded . '"' .
-			', "' . $dateAdded . '");');
+			', "' . $user . '"' .
+			', "' . $dateEdited . '");');
 	}
 
 	$sources = $_POST['remix'];
