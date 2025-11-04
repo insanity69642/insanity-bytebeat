@@ -15,6 +15,5 @@ define('BYTEBEAT_TIMEZONE', 'UTC');
 define('BYTEBEAT_DBMAKE', false);
 // Administartors
 $bytebeat_admins = array(
-	'Username1' => 'Password1',
-	'Username2' => 'Password2'
+	'insanity' => "WHATTHEHELL"
 );
