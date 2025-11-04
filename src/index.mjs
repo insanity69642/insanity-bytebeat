@@ -1,11 +1,9 @@
 import { Editor } from './editor.mjs';
-import { Library } from './library.mjs';
 import { Scope } from './scope.mjs';
 import { UI } from './ui.mjs';
 import { getCodeFromUrl, getUrlFromCode } from './url.mjs';
 
 const editor = new Editor();
-const library = new Library();
 const scope = new Scope();
 const ui = new UI();
 
@@ -26,7 +24,7 @@ globalThis.bytebeat = new class {
 			drawMode: scope.drawMode,
 			drawScale: scope.drawScale,
 			isSeconds: false,
-			showAllSongs: library.showAllSongs,
+			showAllSongs: true,
 			srDivisor: 1,
 			themeStyle: 'Default',
 			volume: .5
@@ -63,11 +61,6 @@ globalThis.bytebeat = new class {
 			case 'control-samplerate':
 			case 'control-samplerate-select': this.setSampleRate(+elem.value); break;
 			case 'control-theme-style': this.setThemeStyle(elem.value); break;
-			case 'library-show-all':
-				library.toggleAll(elem, elem.checked);
-				this.saveSettings();
-				break;
-			}
 			return;
 		case 'click':
 			switch(elem.tagName) {
@@ -104,12 +97,6 @@ globalThis.bytebeat = new class {
 						elem.hasAttribute('data-songdata') ? JSON.parse(elem.dataset.songdata) : {}));
 				} else if(elem.classList.contains('code-load')) {
 					library.onclickCodeLoadButton(elem);
-				} else if(elem.classList.contains('code-remix-load')) {
-					library.onclickRemixLoadButton(elem);
-				} else if(elem.classList.contains('library-header')) {
-					library.onclickLibraryHeader(elem);
-				} else if(elem.parentNode.classList.contains('library-header')) {
-					library.onclickLibraryHeader(elem.parentNode);
 				} else if(elem.classList.contains('song-hash')) {
 					navigator.clipboard.writeText(elem.dataset.hash);
 					e.preventDefault();
@@ -145,7 +132,6 @@ globalThis.bytebeat = new class {
 			this.settings = JSON.parse(localStorage.settings);
 			scope.drawMode = this.settings.drawMode;
 			scope.drawScale = this.settings.drawScale;
-			library.showAllSongs = this.settings.showAllSongs;
 		} catch(err) {
 			this.saveSettings();
 		}
@@ -161,7 +147,6 @@ globalThis.bytebeat = new class {
 		editor.init();
 		ui.initElements();
 		scope.initElements();
-		library.initElements();
 		this.setVolume(true);
 		this.setCounterUnits();
 		this.setCodeStyle();
@@ -351,7 +336,6 @@ globalThis.bytebeat = new class {
 	saveSettings() {
 		this.settings.drawMode = scope.drawMode;
 		this.settings.drawScale = scope.drawScale;
-		this.settings.showAllSongs = library.showAllSongs;
 		localStorage.settings = JSON.stringify(this.settings);
 	}
 	sendData(data) {
